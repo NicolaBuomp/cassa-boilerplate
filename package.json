@@ -1,0 +1,22 @@
+{
+  "name": "roxy-cassa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cassa e catalogo prodotti per un bar. Vendite composte da smartphone dallo staff.",
+  "//workspaces": "print-server è escluso di proposito: ha una dipendenza nativa da compilare e si installa solo sul PC del banco.",
+  "workspaces": [
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace=@roxy/web",
+    "build": "npm run build --workspace=@roxy/web",
+    "lint": "npm run lint --workspace=@roxy/web",
+    "typecheck": "npm run typecheck --workspace=@roxy/web",
+    "test": "npm run test --workspace=@roxy/web",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local --schema public > apps/web/lib/supabase/database.types.ts"
+  }
+}

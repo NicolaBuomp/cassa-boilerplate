@@ -1,0 +1,22 @@
+{
+  "name": "roxy-print-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Stampa i promemoria di vendita: ascolta print_jobs su Supabase Realtime e stampa su termica ESC/POS. Gira sul PC al banco.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test:print": "node src/test-print.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.1",
+    "@thiagoelg/node-printer": "^0.6.2",
+    "dotenv": "^16.4.5",
+    "node-thermal-printer": "^4.4.4",
+    "ws": "^8.21.0"
+  }
+}

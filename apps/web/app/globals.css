@@ -1,0 +1,61 @@
+@import 'tailwindcss';
+
+/*
+  Interfaccia pensata per un telefono tenuto in mano al banco, spesso in
+  penombra: fondo scuro, contrasto alto, aree di tocco generose (min 48px),
+  numeri grandi. Niente ornamenti: si legge di sbieco e si tocca al volo.
+*/
+@theme {
+  --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-numeri: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+
+  --color-fondo: #14161a;
+  --color-superficie: #1e2228;
+  --color-superficie-alta: #282d35;
+  --color-bordo: #363c46;
+  --color-testo: #f2f4f7;
+  --color-testo-debole: #98a2b3;
+
+  --color-accento: #f0a01e;
+  --color-accento-scuro: #b87610;
+  --color-positivo: #3fa87a;
+  --color-attenzione: #e0603a;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-fondo);
+  color: var(--color-testo);
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
+  /* Al banco si tocca in fretta: la selezione accidentale del testo dà fastidio. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* I campi sotto i 16px fanno zoomare Safari a ogni focus. */
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  font-size: max(1rem, 16px);
+}
+
+@utility numeri {
+  font-family: var(--font-numeri);
+  font-variant-numeric: tabular-nums;
+}
