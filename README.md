@@ -9,6 +9,9 @@ fa risparmiare tempo, perché diverse parole qui significano una cosa precisa.
 Le tre decisioni che spiegano perché il codice ha questa forma stanno in [docs/adr](docs/adr):
 non c'è nessun inventario, la vendita nasce non pagata, e incassa solo chi ha battuto.
 
+**[docs/stato.md](docs/stato.md)** dice a che punto siamo: cosa è verificato davvero, cosa no, e
+cosa manca. Leggerlo prima di dare per buono qualcosa.
+
 ## Come funziona, in due righe
 
 Il cassiere compone la vendita sul telefono e la batte: nasce **da pagare**, prende un **Numero**
