@@ -16,7 +16,9 @@
     "lint": "npm run lint --workspace=@cassa/web",
     "typecheck": "npm run typecheck --workspace=@cassa/web",
     "test": "npm run test --workspace=@cassa/web",
+    "rinomina": "node scripts/rinomina.mjs",
     "db:reset": "supabase db reset",
-    "db:types": "supabase gen types typescript --local --schema public > apps/web/lib/supabase/database.types.ts"
+    "//db:types": "Scrive un file di RIFERIMENTO, non i tipi dell'app: database.types.ts è mantenuto a mano (union con nome al posto di string) e va confrontato con questo, non sovrascritto.",
+    "db:types": "supabase gen types typescript --local --schema public > apps/web/lib/supabase/database.generated.ts"
   }
 }

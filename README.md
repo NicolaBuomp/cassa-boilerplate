@@ -119,8 +119,16 @@ supabase/
   tests/             invarianti di dominio
 ```
 
-## Rigenerare i tipi dopo una migration
+## I tipi, dopo una migration
+
+`apps/web/lib/supabase/database.types.ts` è scritto **a mano**, di proposito: usa union con nome
+(`StatoVendita`, `Ruolo`, `StatoStampa`) dove `supabase gen types` scriverebbe `string`, e sono
+quelle a far funzionare i controlli di esaustività nei componenti.
 
 ```bash
 npm run db:types
 ```
+
+produce `database.generated.ts` — un **riferimento**, ignorato da git — da cui riportare a mano le
+differenze. Non sovrascrive i tipi dell'app. Nessuno verifica per voi che i due coincidano: la CI
+prova soltanto che il generatore giri sullo schema.

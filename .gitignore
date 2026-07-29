@@ -19,3 +19,7 @@ next-env.d.ts
 
 supabase/.branches
 supabase/.temp
+
+# Riferimento prodotto da `npm run db:types`: si guarda e si butta. I tipi veri
+# dell'app stanno in apps/web/lib/supabase/database.types.ts, scritti a mano.
+apps/web/lib/supabase/database.generated.ts

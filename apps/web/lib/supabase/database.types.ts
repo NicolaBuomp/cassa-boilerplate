@@ -1,10 +1,18 @@
 /**
  * Tipi dello schema Postgres.
  *
- * Rigenerare dopo ogni migration con:
- *   npm run db:types
+ * ATTENZIONE: questo file è mantenuto **a mano**, e non va sovrascritto con
+ * l'output di `supabase gen types`. Il generatore non conosce le union con nome
+ * qui sotto (`Ruolo`, `StatoVendita`, `StatoStampa`, `MetodoPagamento`): dove
+ * loro dicono `'da_pagare' | 'pagata' | 'annullata'`, lui dice `string`, e i
+ * controlli di esaustività nei componenti smetterebbero di funzionare.
  *
- * Se questo file e il database divergono, il database ha ragione.
+ * Dopo una migration:
+ *   npm run db:types     → scrive database.generated.ts, che è un RIFERIMENTO
+ *   e si riportano a mano le differenze qui dentro.
+ *
+ * Se questo file e il database divergono, il database ha ragione. Nessuno lo
+ * verifica per voi: la CI prova soltanto che il generatore giri.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -171,6 +179,8 @@ export interface Database {
           righe: RigaVenditaJson[];
           stato_stampa: StatoStampa | null;
           print_job_id: string | null;
+          /** Quando il job è stato accodato. Serve a capire da quanto è fermo. */
+          stampa_accodata_il: string | null;
         };
         Relationships: [];
       };

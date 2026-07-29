@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/providers/auth-provider';
 import { BottomNav } from './_components/bottom-nav';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isLoading, profilo } = useAuth();
+  const { isLoading, profilo, signOut } = useAuth();
 
   if (isLoading) {
     return (
@@ -21,6 +21,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <p className="text-sm text-testo-debole">
           Il tuo utente non è attivo. Chiedi al titolare di riattivarlo.
         </p>
+        {/* Senza questo il telefono del banco resta bloccato su un account
+            disattivato, e nessun altro può entrare a battere. */}
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          className="mt-4 min-h-12 rounded-xl border border-bordo px-6 text-sm"
+        >
+          Esci
+        </button>
       </div>
     );
   }

@@ -1,0 +1,35 @@
+<!--
+  Icona dell'app installata sul telefono.
+
+  È un segnaposto deliberatamente neutro: un promemoria di vendita, col Numero
+  in evidenza, che è l'oggetto attorno a cui gira tutta l'applicazione. Il
+  boilerplate non porta con sé il marchio di nessuno — come non porta un seed
+  con dei prodotti — ma nemmeno lascia un buco, perché un'icona mancante
+  significa niente installazione sulla schermata del telefono.
+
+  Va sostituita con quella dell'Attività. I colori qui sono ricopiati a mano dai
+  token di `app/globals.css`: un SVG in `public/` non li può leggere, quindi se
+  si ricolora il tema si ricolora anche questo file.
+
+  Il disegno resta dentro il cerchio centrale dell'80%, che è la parte che
+  Android non ritaglia quando applica la forma del suo tema (icona `maskable`).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Cassa">
+  <!-- Fondo a tutta tela: per una maskable il colore deve arrivare ai bordi. -->
+  <rect width="512" height="512" fill="#14161a" />
+
+  <!-- Il promemoria, con lo strappo in basso. -->
+  <g fill="#f2f4f7">
+    <rect x="156" y="130" width="200" height="225" rx="14" />
+    <polygon points="156,340 156,366 181,344 206,366 231,344 256,366 281,344 306,366 331,344 356,366 356,340" />
+  </g>
+
+  <!-- Il Numero: la sola cosa che il cliente deve saper esibire. -->
+  <rect x="182" y="166" width="148" height="58" rx="10" fill="#f0a01e" />
+
+  <!-- Le righe della vendita, accennate. -->
+  <g fill="#98a2b3">
+    <rect x="182" y="248" width="148" height="14" rx="7" />
+    <rect x="182" y="280" width="98" height="14" rx="7" />
+  </g>
+</svg>

@@ -30,8 +30,9 @@ diversi. Se un blocco è rosso, si corregge prima di andare avanti.
 npm run db:types
 ```
 
-Rigenera i tipi TypeScript dallo schema. Se divergono da quelli in repository, ha ragione il
-database.
+Produce `database.generated.ts`, un riferimento ignorato da git. **Non** rigenera i tipi dell'app:
+`database.types.ts` è scritto a mano, e le differenze si riportano a mano. Se i due divergono, ha
+ragione il database.
 
 Gli stessi controlli girano da soli in `.github/workflows/ci.yml`, ed è il file che conviene
 **tenere anche nel fork**: nessuno guarda le copie, e la CI è l'unica cosa che si accorge di una
@@ -48,26 +49,47 @@ serve a niente. Il template dà una storia pulita che parte dal primo commit del
 
 ## 2. Rinominare
 
-Sostituire `cassa-banco` e lo scope `@cassa` col nome dell'Attività:
+```bash
+npm run rinomina -- bar-centrale
+```
 
-| File | Cosa |
-|---|---|
-| `package.json` | `name`, `description`, i cinque script `--workspace=@…/web` |
-| `apps/web/package.json` | `name` |
-| `apps/print-server/package.json` | `name` |
-| `supabase/config.toml` | `project_id` |
-| `README.md` | intestazione e descrizione |
+Il `--` serve: senza, npm si tiene l'argomento invece di passarlo allo script.
 
-Poi `npm install` per riallineare `package-lock.json`.
+Sostituisce `cassa-banco` e lo scope `@cassa` col nome dell'Attività in `package.json` (nome e
+script dei workspace), nei due `package.json` delle app, e in `project_id` di
+`supabase/config.toml` — quest'ultimo è quello che si dimentica sempre, perché sbagliarlo non
+rompe niente: fa solo collidere in locale due Attività diverse.
+
+Registra anche, in `package.json`, **da quale commit del boilerplate parte questa copia**. Ogni
+Attività è un fork congelato e non riceve aggiornamenti
+([ADR 0004](adr/0004-ogni-attivita-e-un-fork-congelato.md)): quando a monte viene corretto un
+difetto, quel commit è l'unico modo per sapere se questa installazione se lo porta dietro.
+
+Poi `npm install` per riallineare `package-lock.json`, e restano a mano `README.md` (intestazione e
+descrizione) e i file del punto 3.
 
 ## 3. Identità visiva
 
-Due file, e nessun altro:
+Due file di codice:
 
 - **`apps/web/lib/attivita.ts`** — nome, sottotitolo, titolo della scheda, descrizione, e
   `coloreBarra`.
 - **`apps/web/app/globals.css`** — il blocco `@theme`, dodici token. Sono compile-time: non possono
   arrivare da variabili d'ambiente né dal database.
+
+E le icone, che sono file a sé:
+
+- **`apps/web/public/icona.svg`** e **`apps/web/app/icon.svg`** — lo stesso disegno, in due posti
+  perché servono a due cose: il primo è l'icona dell'app installata (`app/manifest.ts`), il secondo
+  la favicon della scheda. Quello in repository è un segnaposto neutro e ha i colori del tema
+  **ricopiati a mano**: un SVG in `public/` non legge i token di `globals.css`, quindi se ricolorate
+  il tema ricolorate anche l'icona.
+- **`apps/web/app/apple-icon.png`**, 180×180 — **manca, e va aggiunto se l'Attività usa iPhone.**
+  iOS non accetta SVG per l'icona della schermata home: senza questo file, "Aggiungi a Home"
+  produce una miniatura della pagina invece dell'icona. Android invece si accontenta dell'SVG.
+
+Installare l'app sul telefono non è un vezzo: sparisce la barra degli indirizzi e si recupera la
+striscia di schermo che al banco vale una riga di carrello in più.
 
 **Se cambiate `--color-fondo`, aggiornate anche `coloreBarra`**: è la barra di sistema del
 telefono e non si deriva dal CSS. È la svista più facile da fare e la più visibile.

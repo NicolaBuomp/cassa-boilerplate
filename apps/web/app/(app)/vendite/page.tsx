@@ -1,6 +1,8 @@
 'use client';
 
+import { descriviStampa } from '@/lib/cassa/stampa';
 import { dataOra, euro, quantita as fmtQuantita } from '@/lib/format';
+import { useAdesso } from '@/lib/hooks/use-adesso';
 import { useRistampaVendita, useStoricoVendite } from '@/lib/hooks/use-vendite';
 import { useAuth } from '@/lib/providers/auth-provider';
 import type { StatoVendita, Vendita } from '@/lib/supabase/database.types';
@@ -34,6 +36,8 @@ export default function VenditePage() {
   const incassato = visibili
     .filter((v) => v.stato === 'pagata')
     .reduce((somma, v) => somma + Number(v.totale), 0);
+
+  const adesso = useAdesso();
 
   return (
     <div className="flex flex-col gap-3 pt-4">
@@ -81,6 +85,7 @@ export default function VenditePage() {
             <li key={vendita.id}>
               <SchedaVendita
                 vendita={vendita}
+                adesso={adesso}
                 aperta={apertaId === vendita.id}
                 onToggle={() => setApertaId(apertaId === vendita.id ? null : vendita.id)}
               />
@@ -94,14 +99,17 @@ export default function VenditePage() {
 
 function SchedaVendita({
   vendita,
+  adesso,
   aperta,
   onToggle,
 }: {
   vendita: Vendita;
+  adesso: number;
   aperta: boolean;
   onToggle: () => void;
 }) {
   const ristampa = useRistampaVendita();
+  const stampa = descriviStampa(vendita.stato_stampa, vendita.stampa_accodata_il, adesso);
 
   return (
     <div className="rounded-2xl border border-bordo bg-superficie">
@@ -167,12 +175,8 @@ function SchedaVendita({
           ) : null}
 
           <div className="mt-3 flex items-center justify-between gap-2">
-            <span className="text-xs text-testo-debole">
-              {vendita.stato_stampa === 'error'
-                ? 'Stampa fallita'
-                : vendita.stato_stampa === 'printed'
-                  ? 'Stampato'
-                  : 'Stampa in coda'}
+            <span className={`text-xs ${stampa.allarme ? 'text-attenzione' : 'text-testo-debole'}`}>
+              {stampa.testo}
             </span>
             <button
               type="button"

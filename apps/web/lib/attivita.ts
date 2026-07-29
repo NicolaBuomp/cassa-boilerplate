@@ -17,7 +17,11 @@ export const attivita = {
   /** La riga sotto il nome. Serve a dire cosa è questa app, non a fare marketing. */
   sottotitolo: 'Cassa',
 
-  /** Titolo della scheda del browser e nome dell'app installata sul telefono. */
+  /**
+   * Titolo della scheda del browser, e nome dell'app installata sul telefono:
+   * lo legge anche `app/manifest.ts`. Sotto l'icona ne compaiono una dozzina di
+   * caratteri, il resto viene troncato.
+   */
   titolo: 'Cassa',
 
   /** Descrizione nei metadati. Non la legge quasi nessuno, ma finisce nelle anteprime. */

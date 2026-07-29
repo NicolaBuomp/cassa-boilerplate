@@ -1,6 +1,8 @@
 'use client';
 
+import { descriviStampa } from '@/lib/cassa/stampa';
 import { euro, ora } from '@/lib/format';
+import { useAdesso } from '@/lib/hooks/use-adesso';
 import {
   useAnnullaVendita,
   useIncassaVendita,
@@ -18,6 +20,7 @@ export default function DaIncassarePage() {
   const incassa = useIncassaVendita();
   const annulla = useAnnullaVendita();
   const [apertaId, setApertaId] = useState<string | null>(null);
+  const adesso = useAdesso();
 
   useVenditeRealtime();
 
@@ -51,7 +54,11 @@ export default function DaIncassarePage() {
         <ul className="flex flex-col gap-2">
           {vendite.map((vendita) => (
             <li key={vendita.id}>
-              <RigaSospeso vendita={vendita} onApri={() => setApertaId(vendita.id)} />
+              <RigaSospeso
+                vendita={vendita}
+                adesso={adesso}
+                onApri={() => setApertaId(vendita.id)}
+              />
             </li>
           ))}
         </ul>
@@ -77,10 +84,19 @@ export default function DaIncassarePage() {
   );
 }
 
-function RigaSospeso({ vendita, onApri }: { vendita: Vendita; onApri: () => void }) {
+function RigaSospeso({
+  vendita,
+  adesso,
+  onApri,
+}: {
+  vendita: Vendita;
+  adesso: number;
+  onApri: () => void;
+}) {
   const riepilogo = vendita.righe
     .map((riga) => `${riga.quantita}× ${riga.nome_prodotto}`)
     .join(', ');
+  const stampa = descriviStampa(vendita.stato_stampa, vendita.stampa_accodata_il, adesso);
 
   return (
     <button
@@ -96,9 +112,9 @@ function RigaSospeso({ vendita, onApri }: { vendita: Vendita; onApri: () => void
         <span className="truncate text-sm">{riepilogo}</span>
         <span className="text-xs text-testo-debole">
           {ora(vendita.created_at)} · {vendita.battuta_da_nome}
-          {vendita.stato_stampa === 'error' ? (
-            <span className="text-attenzione"> · stampa fallita</span>
-          ) : null}
+          {/* Solo quando c'è qualcosa che non va: una stampa che procede non
+              merita spazio in una lista che si legge di sbieco. */}
+          {stampa.allarme ? <span className="text-attenzione"> · {stampa.testo}</span> : null}
         </span>
       </span>
 

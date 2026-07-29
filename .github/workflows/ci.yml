@@ -81,17 +81,23 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/invarianti.sql
 
-      # I tipi in repository devono corrispondere allo schema. Se divergono ha
-      # ragione il database: si esegue `npm run db:types` e si committa.
-      - name: I tipi generati sono allineati allo schema
+      # `database.types.ts` è scritto a mano — usa union con nome (Ruolo,
+      # StatoVendita…) dove `gen types` metterebbe `string` — quindi NON si può
+      # confrontare con l'output del generatore: differirebbe sempre.
+      #
+      # Qui ci si limita a provare che il generatore gira sullo schema appena
+      # applicato. Che i tipi a mano siano allineati resta responsabilità di chi
+      # scrive la migration: si esegue `npm run db:types` e si guarda il
+      # riferimento prodotto.
+      #
+      # Il controllo vero della corrispondenza schema/tipi non c'è. Per averlo
+      # servirebbe separare i tipi generati da quelli di dominio, che è un
+      # lavoro a sé.
+      - name: Il generatore di tipi gira sullo schema
         run: |
           supabase gen types typescript --local --schema public \
-            > apps/web/lib/supabase/database.types.ts
-          git diff --exit-code -- apps/web/lib/supabase/database.types.ts \
-            || {
-              echo "::error::database.types.ts non è allineato allo schema. Esegui 'npm run db:types' e committa il risultato."
-              exit 1
-            }
+            > "${RUNNER_TEMP}/database.generated.ts"
+          test -s "${RUNNER_TEMP}/database.generated.ts"
 
   print-server:
     name: Print server
