@@ -12,7 +12,8 @@ function obbligatoria(nome) {
 export const config = {
   supabaseUrl: obbligatoria('SUPABASE_URL'),
   serviceRoleKey: obbligatoria('SUPABASE_SERVICE_ROLE_KEY'),
-  intestazione: (process.env.INTESTAZIONE || 'ROXY').trim(),
+  // Il nome dell'attività stampato in cima al promemoria, se non c'è un logo.
+  intestazione: (process.env.INTESTAZIONE || 'CASSA').trim(),
   stampante: (() => {
     const iface = (process.env.PRINTER_INTERFACE || 'printer:auto').trim();
     return {

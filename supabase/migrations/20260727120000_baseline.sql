@@ -1,5 +1,5 @@
 -- ============================================================================
--- Roxy Cassa — schema di baseline
+-- Cassa da banco — schema di baseline
 --
 -- Il linguaggio segue CONTEXT.md: Prodotto, Vendita, Riga di Vendita, Numero,
 -- Chiusura, Titolare, Cassiere. Non esiste il concetto di giacenza (ADR 0001),

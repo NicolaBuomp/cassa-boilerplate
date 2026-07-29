@@ -130,7 +130,7 @@ function ascolta() {
 }
 
 async function main() {
-  log('Roxy print server in avvio…');
+  log('Print server in avvio…');
   log('Stampante:', config.stampante.interface, `(${config.stampante.tipo})`);
   log(
     'Stampante collegata:',

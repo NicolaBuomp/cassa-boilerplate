@@ -1,5 +1,6 @@
 'use client';
 
+import { attivita } from '@/lib/attivita';
 import { useAuth } from '@/lib/providers/auth-provider';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -30,8 +31,8 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col justify-center px-6 py-12">
       <div className="mx-auto w-full max-w-sm">
-        <h1 className="text-3xl font-semibold tracking-tight">Roxy</h1>
-        <p className="mt-1 text-sm text-testo-debole">Cassa</p>
+        <h1 className="text-3xl font-semibold tracking-tight">{attivita.nome}</h1>
+        <p className="mt-1 text-sm text-testo-debole">{attivita.sottotitolo}</p>
 
         <form onSubmit={invia} className="mt-10 flex flex-col gap-4">
           <label className="flex flex-col gap-2">

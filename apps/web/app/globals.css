@@ -4,6 +4,20 @@
   Interfaccia pensata per un telefono tenuto in mano al banco, spesso in
   penombra: fondo scuro, contrasto alto, aree di tocco generose (min 48px),
   numeri grandi. Niente ornamenti: si legge di sbieco e si tocca al volo.
+
+  ┌─ PERSONALIZZAZIONE ────────────────────────────────────────────────────────
+  │ Questo blocco è il tema dell'Attività, ed è il secondo (e ultimo) posto da
+  │ toccare a ogni nuova installazione — l'altro è `lib/attivita.ts`.
+  │
+  │ I token sono compile-time: non possono arrivare da una variabile d'ambiente
+  │ né dal database. Si modificano qui e si ricompila.
+  │
+  │ Se cambi `--color-fondo`, aggiorna anche `coloreBarra` in `lib/attivita.ts`:
+  │ è la barra di sistema del telefono, e non c'è modo di derivarla da qui.
+  │
+  │ Il fondo scuro non è un vezzo estetico ma una scelta di leggibilità al
+  │ banco. Un tema chiaro va provato sul posto prima di adottarlo.
+  └────────────────────────────────────────────────────────────────────────────
 */
 @theme {
   --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

@@ -1,18 +1,111 @@
 -- Invarianti del dominio: le regole che, se si rompono, fanno perdere soldi o
--- fiducia nei numeri. Si eseguono contro il database locale dopo un reset:
+-- fiducia nei numeri. Si eseguono contro il database locale:
 --
+--   supabase start
 --   supabase db reset
 --   psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/invarianti.sql
 --
 -- Ogni blocco fallisce rumorosamente con `assert`. Nessun output = tutto verde.
+--
+-- Lo script è **autosufficiente**: si crea i propri utenti e il proprio catalogo,
+-- e li cancella in fondo. Non dipende dal seed, che nel boilerplate è vuoto.
+--
+-- Ogni blocco è una transazione a sé (autocommit), e non è un dettaglio: le
+-- impersonazioni usano `set_config(..., is_local => true)`, che vale fino a fine
+-- transazione. È così che ogni blocco riparte da superuser e può leggere le
+-- tabelle senza che la RLS gli nasconda metà delle righe. Non racchiudete il
+-- file in un `begin/rollback`: i blocchi 10, 11 e 15 comincerebbero a mentire.
+--
+-- Se un blocco fallisce, psql si ferma e la pulizia finale non viene eseguita:
+-- il database resta sporco di proposito, così potete guardarci dentro. Per
+-- rieseguire, `supabase db reset`.
 
 \set ON_ERROR_STOP on
 \timing off
 
--- Gli id vengono dal seed.
-\set titolare  '''11111111-1111-1111-1111-111111111111'''
-\set cassiere  '''22222222-2222-2222-2222-222222222222'''
-\set cassiere2 '''33333333-3333-3333-3333-333333333333'''
+-- ── Guardia ──────────────────────────────────────────────────────────────────
+-- Questo script scrive utenti e vendite, e dà per scontato di partire da zero
+-- (il primo utente creato deve diventare Titolare, la prima vendita deve essere
+-- la numero 1). Su un database con dati veri fallirebbe in modo incomprensibile,
+-- oltre a essere una pessima idea.
+
+do $$
+begin
+  if exists (select 1 from auth.users)
+     or exists (select 1 from public.vendite)
+     or exists (select 1 from public.chiusure) then
+    raise exception using message =
+      'Il database non è vuoto. invarianti.sql crea utenti e vendite e presuppone '
+      'una cassa mai aperta: eseguilo solo in locale, dopo `supabase db reset`.';
+  end if;
+end;
+$$;
+
+-- ── Fixture ──────────────────────────────────────────────────────────────────
+-- Tre utenti con id fissi, così i blocchi sotto possono impersonarli. Il primo
+-- inserito diventa Titolare per via del trigger `on_auth_user_created`: è già di
+-- per sé una verifica del bootstrap.
+--
+-- La password è un uuid casuale che nessuno conosce: questi utenti non servono
+-- per entrare nell'app, e non devono poterlo fare nemmeno per sbaglio.
+
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, created_at, updated_at,
+  raw_app_meta_data, raw_user_meta_data
+)
+values
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '11111111-1111-1111-1111-111111111111',
+    'authenticated', 'authenticated', 'titolare@prova.local',
+    extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf')),
+    now(), now(), now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"nome":"Titolare di prova"}'::jsonb
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '22222222-2222-2222-2222-222222222222',
+    'authenticated', 'authenticated', 'cassiere1@prova.local',
+    extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf')),
+    now(), now(), now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"nome":"Cassiere di prova"}'::jsonb
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '33333333-3333-3333-3333-333333333333',
+    'authenticated', 'authenticated', 'cassiere2@prova.local',
+    extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf')),
+    now(), now(), now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"nome":"Seconda cassiera di prova"}'::jsonb
+  );
+
+do $$
+begin
+  assert (select ruolo from public.profiles where id = '11111111-1111-1111-1111-111111111111') = 'titolare',
+    'il primo utente registrato deve diventare Titolare';
+  assert (select ruolo from public.profiles where id = '22222222-2222-2222-2222-222222222222') = 'cassiere',
+    'dal secondo in poi si nasce Cassiere';
+end;
+$$;
+
+-- Catalogo di prova, deliberatamente senza vocabolario di settore: il nucleo non
+-- presume che tipo di attività lo stia usando. I prezzi sono scelti per i blocchi
+-- che li verificano, non per verosimiglianza.
+
+insert into public.categorie (id, nome, ordine) values
+  ('aaaaaaa1-0000-4000-8000-000000000001', 'Prova', 10);
+
+insert into public.prodotti (nome, categoria_id, prezzo, ordine, disponibile) values
+  ('Prova A',        'aaaaaaa1-0000-4000-8000-000000000001',  4.00, 10, true),
+  ('Prova B',        'aaaaaaa1-0000-4000-8000-000000000001',  1.20, 20, true),
+  ('Prova C',        'aaaaaaa1-0000-4000-8000-000000000001',  3.00, 30, true),
+  ('Prova D',        'aaaaaaa1-0000-4000-8000-000000000001', 12.00, 40, true),
+  ('Prova E',        'aaaaaaa1-0000-4000-8000-000000000001',  5.00, 50, true),
+  ('Prova esaurita', 'aaaaaaa1-0000-4000-8000-000000000001',  7.00, 60, false);
 
 -- Impersona un utente: è così che `auth.uid()` risolve dentro le RPC e le policy.
 create or replace function pg_temp.diventa(p_utente uuid) returns void
@@ -36,11 +129,11 @@ do $$
 declare v1 jsonb; v2 jsonb; v3 jsonb;
 begin
   perform pg_temp.diventa('11111111-1111-1111-1111-111111111111');
-  v1 := public.crea_vendita(pg_temp.righe('Birra media'));
-  v2 := public.crea_vendita(pg_temp.righe('Caffè', 2));
+  v1 := public.crea_vendita(pg_temp.righe('Prova A'));
+  v2 := public.crea_vendita(pg_temp.righe('Prova B', 2));
 
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
-  v3 := public.crea_vendita(pg_temp.righe('Spritz'));
+  v3 := public.crea_vendita(pg_temp.righe('Prova C'));
 
   -- I numeri sono progressivi e condivisi fra cassieri diversi: il cliente
   -- non deve mai vedere due volte lo stesso numero nella stessa sessione.
@@ -55,8 +148,8 @@ do $$
 declare rid uuid := gen_random_uuid(); a jsonb; b jsonb; quante int;
 begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
-  a := public.crea_vendita(pg_temp.righe('Panino'), rid);
-  b := public.crea_vendita(pg_temp.righe('Panino'), rid);
+  a := public.crea_vendita(pg_temp.righe('Prova E'), rid);
+  b := public.crea_vendita(pg_temp.righe('Prova E'), rid);
 
   assert a ->> 'id' = b ->> 'id', 'stesso request_id deve restituire la stessa vendita';
   select count(*) into quante from public.vendite where request_id = rid;
@@ -71,7 +164,7 @@ begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
   -- Il client manda anche un prezzo: deve essere ignorato.
   v := public.crea_vendita(jsonb_build_array(jsonb_build_object(
-    'prodotto_id', (select id from public.prodotti where nome = 'Birra media'),
+    'prodotto_id', (select id from public.prodotti where nome = 'Prova A'),
     'quantita', 1,
     'prezzo_unitario', 0.01
   )));
@@ -88,7 +181,7 @@ declare fallito boolean := false;
 begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
   begin
-    perform public.crea_vendita(pg_temp.righe('Mojito')); -- seed: disponibile = false
+    perform public.crea_vendita(pg_temp.righe('Prova esaurita')); -- disponibile = false
   exception when others then
     fallito := true;
   end;
@@ -101,7 +194,7 @@ do $$
 declare v jsonb; fallito boolean := false;
 begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
-  v := public.crea_vendita(pg_temp.righe('Coca cola'));
+  v := public.crea_vendita(pg_temp.righe('Prova C'));
 
   -- Un altro cassiere non può incassarla.
   perform pg_temp.diventa('33333333-3333-3333-3333-333333333333');
@@ -125,7 +218,7 @@ do $$
 declare v jsonb; fallito boolean := false; totale numeric;
 begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
-  v := public.crea_vendita(pg_temp.righe('Tagliere')); -- 12.00
+  v := public.crea_vendita(pg_temp.righe('Prova D')); -- 12.00
 
   begin
     perform public.incassa_vendita((v ->> 'id')::uuid, 'contanti', null, 2, 'sconto amico');
@@ -156,7 +249,7 @@ do $$
 declare v jsonb; fallito boolean := false;
 begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
-  v := public.crea_vendita(pg_temp.righe('Tagliere')); -- 12.00
+  v := public.crea_vendita(pg_temp.righe('Prova D')); -- 12.00
   begin
     perform public.incassa_vendita((v ->> 'id')::uuid, 'contanti', 5);
   exception when others then
@@ -171,7 +264,7 @@ do $$
 declare v jsonb; fallito boolean := false;
 begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
-  v := public.crea_vendita(pg_temp.righe('Caffè'));
+  v := public.crea_vendita(pg_temp.righe('Prova B'));
 
   begin
     perform public.annulla_vendita((v ->> 'id')::uuid, 'sbagliato');
@@ -202,7 +295,7 @@ do $$
 declare v jsonb; messaggio text; fallito boolean := false;
 begin
   perform pg_temp.diventa('11111111-1111-1111-1111-111111111111');
-  v := public.crea_vendita(pg_temp.righe('Birra piccola'));
+  v := public.crea_vendita(pg_temp.righe('Prova C'));
 
   begin
     perform public.chiudi_cassa();
@@ -226,7 +319,7 @@ do $$
 declare v jsonb; aperte int;
 begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
-  v := public.crea_vendita(pg_temp.righe('Caffè'));
+  v := public.crea_vendita(pg_temp.righe('Prova B'));
   assert (v ->> 'numero')::int = 1,
     format('dopo la chiusura si riparte da 1, trovato %s', v ->> 'numero');
 
@@ -304,14 +397,14 @@ begin
   end;
 
   -- Un UPDATE bloccato dalla RLS non solleva: semplicemente non tocca righe.
-  update public.prodotti set prezzo = 0 where nome = 'Birra media';
+  update public.prodotti set prezzo = 0 where nome = 'Prova A';
   get diagnostics toccate = row_count;
 
   reset role;
 
   assert fallito, 'un cassiere non deve poter creare prodotti';
   assert toccate = 0, 'un cassiere non deve poter modificare i prezzi';
-  assert (select prezzo from public.prodotti where nome = 'Birra media') = 4.00,
+  assert (select prezzo from public.prodotti where nome = 'Prova A') = 4.00,
     'il prezzo non deve essere cambiato';
 end;
 $$;
@@ -321,7 +414,7 @@ do $$
 declare v jsonb; job record;
 begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
-  v := public.crea_vendita(pg_temp.righe('Cappuccino', 2));
+  v := public.crea_vendita(pg_temp.righe('Prova B', 2));
 
   select * into job from public.print_jobs where vendita_id = (v ->> 'id')::uuid;
   assert found, 'la battitura deve accodare un promemoria da stampare';
@@ -338,5 +431,30 @@ begin
 end;
 $$;
 
+-- ── Pulizia ──────────────────────────────────────────────────────────────────
+-- L'ordine conta: `vendite.chiusura_id` è `on delete restrict`, e le vendite
+-- puntano ai profili di chi le ha battute. I profili se ne vanno da soli con gli
+-- utenti (`on delete cascade`).
+
+delete from public.print_jobs;
+delete from public.righe_vendita;
+delete from public.vendite;
+delete from public.chiusure;
+delete from public.prodotti;
+delete from public.categorie;
+delete from auth.users where id in (
+  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-2222-2222-222222222222',
+  '33333333-3333-3333-3333-333333333333'
+);
+
+do $$
+begin
+  assert not exists (select 1 from auth.users), 'la pulizia deve rimuovere gli utenti di prova';
+  assert not exists (select 1 from public.vendite), 'la pulizia deve rimuovere le vendite di prova';
+  assert not exists (select 1 from public.prodotti), 'la pulizia deve rimuovere il catalogo di prova';
+end;
+$$;
+
 \echo ''
-\echo 'Tutti gli invarianti sono verdi.'
+\echo 'Tutti gli invarianti sono verdi. Il database è tornato com''era.'

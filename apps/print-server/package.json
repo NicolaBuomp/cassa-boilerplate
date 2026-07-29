@@ -1,5 +1,5 @@
 {
-  "name": "roxy-print-server",
+  "name": "@cassa/print-server",
   "version": "1.0.0",
   "private": true,
   "description": "Stampa i promemoria di vendita: ascolta print_jobs su Supabase Realtime e stampa su termica ESC/POS. Gira sul PC al banco.",

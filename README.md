@@ -1,16 +1,28 @@
-# Roxy Cassa
+# Cassa da banco
 
-Cassa per un bar. Le vendite si compongono da smartphone, dallo staff.
+Boilerplate di cassa per un'attività col banco — bar, chiosco, locale. Le vendite si compongono da
+smartphone, dallo staff.
 
 Tre cose e nient'altro: **battere una vendita**, **incassarla**, **tenere il catalogo prodotti**.
-Il linguaggio del dominio sta in [CONTEXT.md](CONTEXT.md) — leggerlo prima di toccare il codice
-fa risparmiare tempo, perché diverse parole qui significano una cosa precisa.
 
-Le tre decisioni che spiegano perché il codice ha questa forma stanno in [docs/adr](docs/adr):
-non c'è nessun inventario, la vendita nasce non pagata, e incassa solo chi ha battuto.
+> Questo repository è un **template**, non un prodotto. Ogni attività parte da una copia
+> (`Use this template`), la personalizza, e da lì vive per conto suo: non riceve aggiornamenti da
+> qui, e un difetto corretto a monte va riportato a mano dove serve.
+> Vedi [ADR 0004](docs/adr/0004-ogni-attivita-e-un-fork-congelato.md).
 
-**[docs/stato.md](docs/stato.md)** dice a che punto siamo: cosa è verificato davvero, cosa no, e
-cosa manca. Leggerlo prima di dare per buono qualcosa.
+## Da leggere prima di toccare il codice
+
+**[CONTEXT.md](CONTEXT.md)** — il linguaggio del dominio. Diverse parole qui significano una cosa
+precisa, e il file distingue i termini del **nucleo** dalle **decisioni di questa attività**: cioè
+ciò che è stato deliberatamente escluso, con l'argomento che l'ha deciso. Se ereditate questo
+codice per un'attività diversa, è la prima cosa da rileggere.
+
+**[docs/personalizzazione.md](docs/personalizzazione.md)** — la checklist per portare una nuova
+attività in produzione, e l'elenco dei punti da toccare se il dominio è diverso.
+
+**[docs/adr](docs/adr)** — le quattro decisioni che spiegano perché il codice ha questa forma: non
+c'è nessun inventario, la vendita nasce non pagata, incassa solo chi ha battuto, ogni attività è un
+fork congelato.
 
 ## Come funziona, in due righe
 
@@ -20,6 +32,9 @@ A fine serata il titolare chiude la cassa — e non può farlo finché resta anc
 
 Il promemoria stampato **non ha valore fiscale**: il documento commerciale lo emette il
 registratore telematico del locale, con cui questa applicazione non si integra.
+
+Il ciclo a due tempi presuppone un banco. Un'attività dove si batte e si paga nello stesso istante
+non ne ha bisogno: `docs/personalizzazione.md` dice cosa cancellare.
 
 ## Stack
 
@@ -48,16 +63,12 @@ supabase start
 npm run dev
 ```
 
-Il seed crea tre utenti, password `password123`:
+**Il seed è vuoto**, per scelta: un boilerplate non porta con sé credenziali di comodo, perché una
+copia con quelle credenziali finirebbe prima o poi in produzione. Si parte registrando un utente
+dall'app — **il primo che si registra diventa Titolare** — e inserendo il catalogo da `/catalogo`.
 
-| Email | Ruolo |
-|---|---|
-| `titolare@roxy.local` | Titolare |
-| `cassiere@roxy.local` | Cassiere |
-| `cassiere2@roxy.local` | Cassiere |
-
-In produzione non esiste un seed: **il primo utente che si registra diventa Titolare**, e da lì
-gestisce gli altri.
+Per vedere il dominio funzionare senza inserire dati a mano, usare gli invarianti qui sotto: si
+creano le proprie fixture e le annullano.
 
 ## Verifica
 
@@ -76,11 +87,16 @@ Invarianti di dominio contro il database vero: numerazione, idempotenza, chi pu�
 blocco della chiusura sui sospesi, e le policy RLS provate con due utenti diversi. È la parte che
 conta davvero, perché è dove stanno le regole.
 
+Lo script è autosufficiente: si crea utenti e catalogo e li cancella in fondo, quindi non dipende
+dal seed. Rifiuta di partire su un database che contiene già dati. Se un blocco è rosso si ferma
+lì senza pulire, di proposito, così potete guardarci dentro.
+
 ## Struttura
 
 ```
 apps/web/            l'applicazione
   app/(app)/         le schermate autenticate
+  lib/attivita.ts    l'identità dell'attività: l'unico file da personalizzare
   lib/cassa/         logica pura, testata in isolamento
   lib/hooks/         accesso ai dati (TanStack Query)
   lib/supabase/      client e tipi generati

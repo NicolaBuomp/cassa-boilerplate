@@ -1,15 +1,16 @@
 import type { Metadata, Viewport } from 'next';
+import { attivita } from '@/lib/attivita';
 import { AuthProvider } from '@/lib/providers/auth-provider';
 import { QueryProvider } from '@/lib/providers/query-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Roxy Cassa',
-  description: 'Cassa e catalogo prodotti.',
+  title: attivita.titolo,
+  description: attivita.descrizione,
 };
 
 export const viewport: Viewport = {
-  themeColor: '#14161a',
+  themeColor: attivita.coloreBarra,
   // Si lavora con una mano sola su un telefono: niente zoom accidentale sui
   // tasti, ma il pinch resta possibile per chi ne ha bisogno.
   width: 'device-width',

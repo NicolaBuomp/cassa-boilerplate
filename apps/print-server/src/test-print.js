@@ -13,8 +13,8 @@ const finto = {
   totale: 14.4,
   note: 'Stampa di prova',
   righe: [
-    { nome_prodotto: 'Birra media', quantita: 3, prezzo_unitario: 4, totale_riga: 12 },
-    { nome_prodotto: 'Caffè', quantita: 2, prezzo_unitario: 1.2, totale_riga: 2.4 },
+    { nome_prodotto: 'Prodotto di prova', quantita: 3, prezzo_unitario: 4, totale_riga: 12 },
+    { nome_prodotto: 'Secondo prodotto', quantita: 2, prezzo_unitario: 1.2, totale_riga: 2.4 },
   ],
 };
 
