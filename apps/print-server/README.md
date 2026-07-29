@@ -21,10 +21,19 @@ Questo pacchetto è **fuori dai workspace npm** del monorepo, perché
 
 ```bash
 cd apps/print-server
-npm install
+npm ci                 # non `npm install`: vedi sotto
 cp .env.example .env   # poi compilare SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY
 npm start
 ```
+
+`npm ci`, e non `npm install`, perché qui c'è un `package-lock.json` proprio —
+il lock alla radice non copre questo pacchetto, che è fuori dai workspace. Senza
+lock ogni PC di ogni attività risolverebbe le versioni al momento
+dell'installazione, cioè in mesi diversi: la stampa smetterebbe di funzionare in
+un posto solo, e senza che nulla sia cambiato nel codice.
+
+Se serve aggiornare una dipendenza, `npm install <pacchetto>` qui dentro e
+**committare il lock aggiornato**.
 
 ## Prova senza stampante
 

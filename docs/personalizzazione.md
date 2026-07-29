@@ -33,6 +33,10 @@ npm run db:types
 Rigenera i tipi TypeScript dallo schema. Se divergono da quelli in repository, ha ragione il
 database.
 
+Gli stessi controlli girano da soli in `.github/workflows/ci.yml`, ed è il file che conviene
+**tenere anche nel fork**: nessuno guarda le copie, e la CI è l'unica cosa che si accorge di una
+regressione prima che se ne accorga il banco.
+
 ---
 
 ## 1. Creare il repository dell'Attività
@@ -93,16 +97,37 @@ Finiscono entrambi nel bundle del browser: sono pubblici per progetto, non segre
 Il fuso orario `Europe/Rome` è scritto dentro le viste dei report nella migration di baseline. Per
 un'Attività fuori dall'Italia va cambiato lì.
 
+**Chiudere le registrazioni sul progetto hosted.** In *Authentication → Sign In / Providers →
+Email*, togliere **Allow new users to sign up**. `supabase db push` porta su solo lo schema: le
+impostazioni di autenticazione di `config.toml` restano in locale, quindi il progetto nuovo nasce
+con le registrazioni **aperte** e va chiuso a mano. Finché resta aperto, chiunque conosca l'URL
+dell'Attività ottiene un Cassiere attivo che può battere vendite vere.
+
 ## 5. Primo accesso
 
-Il seed è vuoto: si parte da un database senza utenti e senza catalogo.
+Il seed è vuoto: si parte da un database senza utenti e senza catalogo. E l'app non ha una
+schermata di registrazione — c'è solo l'accesso — quindi **gli utenti si creano dalla dashboard
+Supabase**, in *Authentication → Users → Add user* (in locale: Studio su
+http://127.0.0.1:54323). Spuntare *Auto Confirm User*, altrimenti l'utente non riesce a entrare
+finché non conferma l'email.
 
-1. Registrare il Titolare dall'app. **Il primo utente che si registra diventa Titolare** — quindi
-   registrare per primo chi deve comandare, non chi è di turno.
-2. Entrare in `/catalogo/categorie` e creare le Categorie nell'ordine in cui devono comparire
-   nella griglia: la velocità al banco dipende da dove sta il tasto.
+1. Creare il Titolare. **Il primo utente in assoluto diventa Titolare**, per via del trigger
+   `on_auth_user_created`: quindi creare per primo chi deve comandare, non chi è di turno. Tutti
+   quelli creati dopo nascono Cassieri.
+2. Entrare nell'app come Titolare, in `/catalogo/categorie`, e creare le Categorie nell'ordine in
+   cui devono comparire nella griglia: la velocità al banco dipende da dove sta il tasto.
 3. Creare i Prodotti.
-4. Da `/utenti`, invitare i Cassieri.
+4. Creare i Cassieri dalla dashboard, uno per persona — mai un account condiviso: è chi ha battuto
+   la vendita che potrà incassarla ([ADR 0003](adr/0003-solo-chi-ha-battuto-puo-incassare.md)), e
+   un account in comune manda all'aria sia l'isolamento sia il riepilogo per cassiere.
+5. Da `/utenti`, nell'app, il Titolare vede tutti e decide ruolo e attivazione. Quando qualcuno se
+   ne va **si disattiva da qui**, non si cancella: le sue vendite passate devono restare.
+
+Le password le imposta chi crea gli utenti, e **si cambiano dalla dashboard**: l'app non ha né una
+schermata di registrazione né una di recupero password, perché entrambe presuppongono un SMTP
+configurato e un'email che il personale del banco legge davvero. Con tre persone che si conoscono
+tutte, il Titolare che reimposta una password vale quanto un giro di email. Se un'Attività è più
+grande e la cosa diventa un peso, è lì che conviene aggiungere il recupero password — non prima.
 
 ## 6. Print server, se l'Attività stampa
 
@@ -111,9 +136,12 @@ nativa da compilare.
 
 ```bash
 cd apps/print-server
-npm install
+npm ci
 cp .env.example .env
 ```
+
+`npm ci` usa il `package-lock.json` di questo pacchetto, che è suo e separato da
+quello alla radice: due installazioni fatte in mesi diversi devono ottenere le stesse versioni.
 
 Nel `.env`: `SUPABASE_URL`, la `SUPABASE_SERVICE_ROLE_KEY` (bypassa la RLS — **non deve mai finire
 in un repository né su un client**), e `INTESTAZIONE` col nome dell'Attività in maiuscolo.

@@ -46,8 +46,13 @@ export default function UtentiPage() {
       <div className="mt-4 rounded-2xl border border-bordo bg-superficie px-4 py-4">
         <p className="text-sm font-medium">Aggiungere una persona</p>
         <p className="mt-1 text-sm text-testo-debole">
-          Chi si registra con la propria email entra automaticamente come <strong>cassiere</strong>.
-          Da qui puoi promuoverlo a titolare o disattivarlo.
+          Non si può da qui: gli account si creano dal pannello Supabase dell&apos;attività, dove
+          imposti anche la password. Chi viene creato entra come <strong>cassiere</strong>; poi da
+          questa schermata lo promuovi a titolare o lo disattivi.
+        </p>
+        <p className="mt-2 text-sm text-testo-debole">
+          Un account per persona, mai uno condiviso: incassa solo chi ha battuto, e il riepilogo di
+          fine turno si appoggia su questo.
         </p>
       </div>
     </div>

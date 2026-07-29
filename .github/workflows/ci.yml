@@ -1,0 +1,111 @@
+# Ogni Attività è un fork congelato (ADR 0004): questo repository non manda
+# aggiornamenti a valle, e nessuno guarda le copie. Perciò la CI serve due volte:
+# qui, perché un difetto che passa di qui va poi corretto a mano in ogni
+# installazione già consegnata; e nel fork, dove è l'unica cosa che si accorge di
+# una regressione prima che se ne accorga il banco.
+#
+# Il lavoro vero lo fa il blocco `invarianti`: i test unitari coprono la
+# matematica del carrello, ma le regole del dominio stanno nel database.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      # Le due variabili sono pubbliche per progetto e finiscono nel bundle: qui
+      # servono solo perché il build non parte senza, e non contattano niente.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
+
+  invarianti:
+    name: Invarianti di dominio
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Avvia lo stack locale
+        run: supabase start
+
+      # Lo script rifiuta di partire su un database che contiene già dati: il
+      # reset garantisce la condizione, oltre a provare che le migration si
+      # applicano da zero.
+      - name: Applica le migration da zero
+        run: supabase db reset
+
+      # Stesso comando che sta in README.md e in docs/personalizzazione.md: se
+      # cambia qui, va cambiato anche lì.
+      - name: Esegui gli invarianti
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/invarianti.sql
+
+      # I tipi in repository devono corrispondere allo schema. Se divergono ha
+      # ragione il database: si esegue `npm run db:types` e si committa.
+      - name: I tipi generati sono allineati allo schema
+        run: |
+          supabase gen types typescript --local --schema public \
+            > apps/web/lib/supabase/database.types.ts
+          git diff --exit-code -- apps/web/lib/supabase/database.types.ts \
+            || {
+              echo "::error::database.types.ts non è allineato allo schema. Esegui 'npm run db:types' e committa il risultato."
+              exit 1
+            }
+
+  print-server:
+    name: Print server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Non si fa `npm ci`: `@thiagoelg/node-printer` è una dipendenza nativa che
+      # va compilata contro il sistema di stampa della macchina, e questo pacchetto
+      # gira solo sul PC Windows del banco. Qui si controlla che il codice sia
+      # almeno sintatticamente valido — è fuori dai workspace, quindi nessun
+      # typecheck e nessun lint lo guarda mai.
+      # Un file per volta: `node --check a.js b.js` controlla solo il primo e
+      # esce 0, quindi un glob passato in blocco non verificherebbe niente.
+      - name: Il sorgente si analizza
+        run: |
+          for f in src/*.js; do
+            echo "check $f"
+            node --check "$f"
+          done
+        working-directory: apps/print-server

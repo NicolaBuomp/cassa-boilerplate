@@ -45,9 +45,14 @@ non ne ha bisogno: `docs/personalizzazione.md` dice cosa cancellare.
 | Stampa | `apps/print-server`: demone Node sul PC al banco, ESC/POS |
 | Deploy | Vercel |
 
-Le tabelle di dominio sono in **sola lettura** via RLS: ogni scrittura passa da una RPC
-`security definer`. Le regole vivono lì, in un posto solo, e valgono anche se qualcuno chiama
-l'API direttamente.
+Vendite, righe e chiusure sono in **sola lettura** via RLS: ogni scrittura passa da una RPC
+`security definer` (`crea_vendita`, `incassa_vendita`, `annulla_vendita`, `chiudi_cassa`). Le
+regole del ciclo di vendita vivono lì, in un posto solo, e valgono anche se qualcuno chiama l'API
+direttamente.
+
+Catalogo e utenti no: `categorie`, `prodotti` e `profiles` il Titolare li scrive direttamente, con
+una policy RLS che controlla il ruolo. Non c'è una regola di dominio da proteggere — un prodotto è
+una riga — e una RPC in mezzo sarebbe solo cerimonia.
 
 ## Avvio
 
@@ -64,8 +69,13 @@ npm run dev
 ```
 
 **Il seed è vuoto**, per scelta: un boilerplate non porta con sé credenziali di comodo, perché una
-copia con quelle credenziali finirebbe prima o poi in produzione. Si parte registrando un utente
-dall'app — **il primo che si registra diventa Titolare** — e inserendo il catalogo da `/catalogo`.
+copia con quelle credenziali finirebbe prima o poi in produzione.
+
+Anche le **registrazioni sono chiuse**, e l'app non ha una schermata per registrarsi: si crea il
+primo utente dal Supabase Studio (http://127.0.0.1:54323, *Authentication → Users → Add user*, con
+*Auto Confirm User*). **Il primo utente in assoluto diventa Titolare**; da lì si entra nell'app e
+si inserisce il catalogo da `/catalogo`. I dettagli, e cosa cambia sul progetto hosted, stanno in
+[docs/personalizzazione.md](docs/personalizzazione.md).
 
 Per vedere il dominio funzionare senza inserire dati a mano, usare gli invarianti qui sotto: si
 creano le proprie fixture e le annullano.
@@ -90,6 +100,9 @@ conta davvero, perché è dove stanno le regole.
 Lo script è autosufficiente: si crea utenti e catalogo e li cancella in fondo, quindi non dipende
 dal seed. Rifiuta di partire su un database che contiene già dati. Se un blocco è rosso si ferma
 lì senza pulire, di proposito, così potete guardarci dentro.
+
+Tutto questo — più build e allineamento dei tipi allo schema — gira su ogni push in
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Struttura
 

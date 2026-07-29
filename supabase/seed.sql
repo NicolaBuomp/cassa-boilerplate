@@ -1,18 +1,31 @@
 -- Deliberatamente vuoto.
 --
 -- Il boilerplate non presume che tipo di attività lo stia usando, quindi non
--- porta con sé né un catalogo né degli utenti. Ogni installazione parte da zero:
---
---   1. Il primo utente che si registra diventa Titolare — lo fa il trigger
---      `on_auth_user_created` (vedi `app_private.handle_new_user()` nella
---      migration di baseline). Senza questa regola nessuno potrebbe creare il
---      catalogo né promuovere gli altri.
---   2. Il Titolare inserisce Categorie e Prodotti da `/catalogo`.
+-- porta con sé né un catalogo né degli utenti. Ogni installazione parte da zero.
 --
 -- Un seed con utenti e password in chiaro sarebbe comodo per provare l'app dopo
 -- il clone, ma in un boilerplate quelle credenziali si replicherebbero a ogni
 -- nuova attività — e prima o poi una di quelle copie finisce su un progetto di
 -- produzione.
 --
--- Per provare il comportamento a runtime senza inserire dati a mano c'è
--- `supabase/tests/invarianti.sql`: si crea le proprie fixture e le cancella.
+--
+-- COME NASCE IL PRIMO UTENTE
+--
+-- Non dall'app: le registrazioni sono chiuse (`enable_signup = false` in
+-- `config.toml`) e non esiste una schermata per registrarsi. Gli utenti li crea
+-- il Titolare dalla dashboard Supabase, in *Authentication → Users → Add user*;
+-- in locale, dal Supabase Studio su http://127.0.0.1:54323.
+--
+-- Chiunque venga creato — da dashboard o da API admin — passa comunque dal
+-- trigger `on_auth_user_created` (vedi `app_private.handle_new_user()` nella
+-- migration di baseline), che gli costruisce il profilo e assegna il ruolo:
+-- **il primo utente in assoluto diventa Titolare**, tutti gli altri Cassieri.
+-- Quindi il primo va creato per chi deve comandare, non per chi è di turno.
+--
+-- Da lì in poi il Titolare gestisce ruolo e attivazione da `/utenti`, dentro
+-- l'app. Solo la creazione e la password passano dalla dashboard.
+--
+-- Per provare il comportamento a runtime senza creare utenti a mano c'è
+-- `supabase/tests/invarianti.sql`: si crea le proprie fixture — scrivendo
+-- direttamente in `auth.users`, quindi indifferente alle registrazioni chiuse —
+-- e le cancella in fondo.
