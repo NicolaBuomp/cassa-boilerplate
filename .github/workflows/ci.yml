@@ -23,11 +23,11 @@ jobs:
     name: App
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci
@@ -50,11 +50,19 @@ jobs:
     name: Invarianti di dominio
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: supabase/setup-cli@v1
+      # Versione fissata, non `latest`: con `latest` l'action chiede all'API di
+      # GitHub qual è l'ultima release, senza token, e sui runner condivisi quella
+      # chiamata finisce contro il rate limit — la CI si spegne per un motivo che
+      # non ha niente a che vedere col codice. Vale poi lo stesso argomento del
+      # lockfile del print server: un fork congelato non deve svegliarsi un giorno
+      # con una CLI diversa da quella su cui è stato provato.
+      # Per aggiornarla: si alza questo numero e si guarda che gli invarianti
+      # restino verdi.
+      - uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: 2.110.0
 
       - name: Avvia lo stack locale
         run: supabase start
@@ -89,11 +97,11 @@ jobs:
     name: Print server
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
 
       # Non si fa `npm ci`: `@thiagoelg/node-printer` è una dipendenza nativa che
       # va compilata contro il sistema di stampa della macchina, e questo pacchetto
