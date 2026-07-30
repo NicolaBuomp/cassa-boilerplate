@@ -164,6 +164,8 @@ export interface Database {
           attempts: number;
           error: string | null;
           printed_at: string | null;
+          claimed_at: string | null;
+          worker_id: string | null;
           created_at: string;
         };
         Insert: never;
@@ -249,6 +251,19 @@ export interface Database {
       ristampa_vendita: {
         Args: { p_vendita_id: string };
         Returns: string;
+      };
+      prendi_job_stampa: {
+        Args: { p_worker_id: string };
+        Returns: {
+          id: string;
+          vendita_id: string;
+          payload: Json;
+          attempts: number;
+        }[];
+      };
+      recupera_job_stampa: {
+        Args: { p_max_tentativi?: number; p_lease_secondi?: number };
+        Returns: number;
       };
     };
     Enums: Record<string, never>;

@@ -14,6 +14,11 @@ perderebbe il promemoria. Con la coda la vendita è già salvata: il job resta
 è limitato da `MAX_ATTEMPTS`, dopo di che il job va in `error` e compare come
 "stampa fallita" nell'app, dove si può ristampare.
 
+La presa del job avviene nel database: più processi possono essere attivi senza
+stampare due volte lo stesso promemoria. `PRINT_LEASE_SECONDS` stabilisce dopo
+quanto tempo un job lasciato in `printing` da un processo terminato può essere
+recuperato; il valore predefinito è 120 secondi.
+
 ## Installazione
 
 Questo pacchetto è **fuori dai workspace npm** del monorepo, perché

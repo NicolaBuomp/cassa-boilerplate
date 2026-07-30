@@ -215,7 +215,7 @@ $$;
 
 \echo '── 6. Lo sconto è riservato al titolare e richiede una causale ──────────'
 do $$
-declare v jsonb; fallito boolean := false; totale numeric;
+declare v jsonb; fallito boolean := false; v_totale numeric;
 begin
   perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
   v := public.crea_vendita(pg_temp.righe('Prova D')); -- 12.00
@@ -237,8 +237,10 @@ begin
   assert fallito, 'lo sconto senza causale deve fallire';
 
   perform public.incassa_vendita((v ->> 'id')::uuid, 'contanti', 20, 2, 'arrotondamento');
-  select totale into totale from public.vendite where id = (v ->> 'id')::uuid;
-  assert totale = 10.00, format('12,00 meno 2,00 di sconto deve fare 10,00, trovato %s', totale);
+  select ve.totale into v_totale
+    from public.vendite ve
+   where ve.id = (v ->> 'id')::uuid;
+  assert v_totale = 10.00, format('12,00 meno 2,00 di sconto deve fare 10,00, trovato %s', v_totale);
   assert (select resto from public.vendite where id = (v ->> 'id')::uuid) = 10.00,
     'il resto va calcolato sul totale scontato';
 end;

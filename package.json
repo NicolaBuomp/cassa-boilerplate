@@ -20,5 +20,11 @@
     "db:reset": "supabase db reset",
     "//db:types": "Scrive un file di RIFERIMENTO, non i tipi dell'app: database.types.ts è mantenuto a mano (union con nome al posto di string) e va confrontato con questo, non sovrascritto.",
     "db:types": "supabase gen types typescript --local --schema public > apps/web/lib/supabase/database.generated.ts"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.8",
+    "minimatch": "10.2.6",
+    "postcss": "8.5.25",
+    "sharp": "0.35.3"
   }
 }

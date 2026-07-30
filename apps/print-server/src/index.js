@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'node:crypto';
 import ws from 'ws';
 import { config } from './config.js';
 import { stampaPromemoria, stampanteCollegata } from './printer.js';
@@ -9,75 +10,78 @@ const supabase = createClient(config.supabaseUrl, config.serviceRoleKey, {
 });
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
+const workerId = randomUUID();
 
 // ── Coda sequenziale ─────────────────────────────────────────────────────────
 // Un job alla volta: c'è una sola stampante e i promemoria non devono
 // intrecciarsi fra loro.
-const inAttesa = new Set();
 let inSvuotamento = false;
-
-function accoda(id) {
-  if (inAttesa.has(id)) return;
-  inAttesa.add(id);
-  svuota();
-}
 
 async function svuota() {
   if (inSvuotamento) return;
   inSvuotamento = true;
   try {
-    for (const id of inAttesa) {
-      await lavora(id);
-      inAttesa.delete(id);
+    while (true) {
+      const job = await prendi();
+      if (!job) break;
+      await lavora(job);
     }
   } finally {
     inSvuotamento = false;
   }
-  if (inAttesa.size > 0) svuota(); // id arrivati durante il giro
 }
 
 // ── Lavorazione di un job ────────────────────────────────────────────────────
-async function lavora(id) {
-  // Presa atomica: solo chi riesce a portare il job da 'pending' a 'printing'
-  // lo stampa. Evita la doppia stampa fra il canale Realtime e il polling.
-  const { data: preso, error: erroreP } = await supabase
-    .from('print_jobs')
-    .update({ status: 'printing' })
-    .eq('id', id)
-    .eq('status', 'pending')
-    .select('id, attempts, payload')
-    .maybeSingle();
+async function prendi() {
+  // La RPC usa FOR UPDATE SKIP LOCKED: due demoni non possono prendere la
+  // stessa riga e non si bloccano a vicenda.
+  const { data, error } = await supabase.rpc('prendi_job_stampa', {
+    p_worker_id: workerId,
+  });
 
-  if (erroreP) {
-    log('errore in presa', id, erroreP.message);
-    return;
+  if (error) {
+    log('errore in presa', error.message);
+    return null;
   }
-  if (!preso) return; // già preso, o non più pending
+  return data?.[0] ?? null;
+}
 
-  const tentativi = (preso.attempts ?? 0) + 1;
+async function lavora(job) {
+  const { id, attempts: tentativi, payload } = job;
   try {
-    await stampaPromemoria(preso.payload);
-    await supabase
+    await stampaPromemoria(payload);
+    const { error } = await supabase
       .from('print_jobs')
       .update({
         status: 'printed',
-        attempts: tentativi,
         printed_at: new Date().toISOString(),
         error: null,
+        claimed_at: null,
+        worker_id: null,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('status', 'printing')
+      .eq('worker_id', workerId);
+    if (error) throw error;
     log('stampato', id);
   } catch (err) {
     const messaggio = String(err?.message ?? err);
     const rinuncia = tentativi >= config.maxTentativi;
-    await supabase
+    const { error } = await supabase
       .from('print_jobs')
       .update({
         status: rinuncia ? 'error' : 'pending',
-        attempts: tentativi,
         error: messaggio,
+        claimed_at: null,
+        worker_id: null,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('status', 'printing')
+      .eq('worker_id', workerId);
+    if (error) {
+      log('errore nel rilascio del job', id, error.message);
+      return;
+    }
     log(rinuncia ? 'ERRORE definitivo' : 'errore, riprovo', id, messaggio);
   }
 }
@@ -86,25 +90,17 @@ async function lavora(id) {
 // Riprende i job lasciati indietro (PC spento, Realtime caduto) e sblocca i
 // 'printing' rimasti appesi da un crash precedente.
 async function recupera() {
-  const vecchio = new Date(Date.now() - 60_000).toISOString();
-  await supabase
-    .from('print_jobs')
-    .update({ status: 'pending' })
-    .eq('status', 'printing')
-    .lt('created_at', vecchio);
-
-  const { data, error } = await supabase
-    .from('print_jobs')
-    .select('id')
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true })
-    .limit(200);
+  const { data, error } = await supabase.rpc('recupera_job_stampa', {
+    p_max_tentativi: config.maxTentativi,
+    p_lease_secondi: config.leaseSecondi,
+  });
 
   if (error) {
     log('errore in recupero', error.message);
     return;
   }
-  for (const riga of data ?? []) accoda(riga.id);
+  if (data > 0) log('job con lease scaduto recuperati:', data);
+  await svuota();
 }
 
 // ── Realtime ─────────────────────────────────────────────────────────────────
@@ -115,7 +111,7 @@ function ascolta() {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'print_jobs' },
       (payload) => {
-        if (payload.new?.status === 'pending') accoda(payload.new.id);
+        if (payload.new?.status === 'pending') void svuota();
       },
     )
     .on(
@@ -123,7 +119,7 @@ function ascolta() {
       { event: 'UPDATE', schema: 'public', table: 'print_jobs' },
       (payload) => {
         // Ristampe e retry tornano a 'pending'.
-        if (payload.new?.status === 'pending') accoda(payload.new.id);
+        if (payload.new?.status === 'pending') void svuota();
       },
     )
     .subscribe((stato) => log('realtime:', stato));
@@ -131,6 +127,7 @@ function ascolta() {
 
 async function main() {
   log('Print server in avvio…');
+  log('Worker:', workerId);
   log('Stampante:', config.stampante.interface, `(${config.stampante.tipo})`);
   log(
     'Stampante collegata:',
