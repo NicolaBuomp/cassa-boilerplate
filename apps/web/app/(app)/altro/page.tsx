@@ -1,11 +1,21 @@
 'use client';
 
 import { useAuth } from '@/lib/providers/auth-provider';
+import { attivita } from '@/lib/attivita';
 import Link from 'next/link';
 import { SoloTitolare } from '../_components/solo-titolare';
 
 const VOCI = [
   { href: '/catalogo', titolo: 'Catalogo', sottotitolo: 'Prodotti, prezzi, disponibilità' },
+  ...(attivita.moduli.inventario
+    ? [
+        {
+          href: '/inventario',
+          titolo: 'Inventario',
+          sottotitolo: 'Prodotti, giacenze e movimenti',
+        },
+      ]
+    : []),
   { href: '/chiusura', titolo: 'Chiusura', sottotitolo: 'Chiudi la sessione di cassa' },
   { href: '/report', titolo: 'Report', sottotitolo: 'Venduto, andamento, cassieri' },
   { href: '/utenti', titolo: 'Utenti', sottotitolo: 'Ruoli e accessi' },

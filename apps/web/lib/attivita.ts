@@ -33,4 +33,9 @@ export const attivita = {
    * tema e dimentichi questo, la barra resta del colore di un'altra attività.
    */
   coloreBarra: '#14161a',
+
+  /** Funzioni opzionali scelte una volta per questa installazione. */
+  moduli: {
+    inventario: false,
+  },
 } as const;

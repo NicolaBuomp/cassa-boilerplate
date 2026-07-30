@@ -63,7 +63,10 @@ export function useCreaProdotto() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: CHIAVI.prodotti }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: CHIAVI.prodotti });
+      void qc.invalidateQueries({ queryKey: ['inventario'] });
+    },
   });
 }
 
@@ -82,7 +85,10 @@ export function useAggiornaProdotto() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: CHIAVI.prodotti }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: CHIAVI.prodotti });
+      void qc.invalidateQueries({ queryKey: ['inventario'] });
+    },
   });
 }
 

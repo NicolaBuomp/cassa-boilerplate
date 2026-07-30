@@ -73,7 +73,8 @@ descrizione) e i file del punto 3.
 Due file di codice:
 
 - **`apps/web/lib/attivita.ts`** — nome, sottotitolo, titolo della scheda, descrizione, e
-  `coloreBarra`.
+  `coloreBarra`. Qui si attiva anche `moduli.inventario` quando l'Attività tiene davvero le
+  giacenze.
 - **`apps/web/app/globals.css`** — il blocco `@theme`, dodici token. Sono compile-time: non possono
   arrivare da variabili d'ambiente né dal database.
 

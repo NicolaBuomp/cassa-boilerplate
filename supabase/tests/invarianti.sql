@@ -433,11 +433,48 @@ begin
 end;
 $$;
 
+\echo '── 16. Inventario opzionale: battitura, annullo e scarico manuale ──────'
+do $$
+declare pid uuid; v jsonb; s numeric; fallita boolean;
+begin
+  perform pg_temp.diventa('11111111-1111-1111-1111-111111111111');
+  insert into public.prodotti
+    (nome, categoria_id, prezzo, traccia_giacenza, prezzo_acquisto, scorta_minima)
+  values
+    ('Inventario A', 'aaaaaaa1-0000-4000-8000-000000000001', 4, true, 2, 2)
+  returning id into pid;
+
+  perform public.registra_movimento(pid, 'carico', 5, 2, 'bolla di prova');
+
+  perform pg_temp.diventa('22222222-2222-2222-2222-222222222222');
+  v := public.crea_vendita(pg_temp.righe('Inventario A', 2));
+  select saldo into s from public.v_inventario where prodotto_id = pid;
+  assert s = 3, 'la battitura deve scaricare la merce quando viene servita';
+
+  perform pg_temp.diventa('11111111-1111-1111-1111-111111111111');
+  perform public.annulla_vendita((v ->> 'id')::uuid, 'errore di prova');
+  select saldo into s from public.v_inventario where prodotto_id = pid;
+  assert s = 5, 'annullare deve reintegrare la merce';
+
+  fallita := false;
+  begin
+    perform public.registra_movimento(pid, 'scarico', 6, 2, 'rottura');
+  exception when others then fallita := true;
+  end;
+  assert fallita, 'uno scarico manuale insufficiente deve essere rifiutato';
+
+  perform public.registra_movimento(pid, 'rettifica', 4, null, 'conteggio');
+  select saldo into s from public.v_inventario where prodotto_id = pid;
+  assert s = 4, 'la rettifica deve portare il saldo al valore contato';
+end;
+$$;
+
 -- ── Pulizia ──────────────────────────────────────────────────────────────────
 -- L'ordine conta: `vendite.chiusura_id` è `on delete restrict`, e le vendite
 -- puntano ai profili di chi le ha battute. I profili se ne vanno da soli con gli
 -- utenti (`on delete cascade`).
 
+delete from public.movimenti;
 delete from public.print_jobs;
 delete from public.righe_vendita;
 delete from public.vendite;

@@ -1,6 +1,7 @@
 'use client';
 
 import { euro } from '@/lib/format';
+import { attivita } from '@/lib/attivita';
 import {
   useAggiornaProdotto,
   useCategorie,
@@ -59,8 +60,10 @@ export default function CatalogoPage() {
       </header>
 
       <p className="text-xs text-testo-debole">
-        Un prodotto “esaurito” sparisce dalla battitura ma resta nei report. Non ci sono giacenze:
-        l’interruttore lo decidi tu.
+        Un prodotto “esaurito” sparisce dalla battitura ma resta nei report.{' '}
+        {attivita.moduli.inventario
+          ? 'La quantità e i movimenti si gestiscono nell’Inventario.'
+          : 'Questa Attività non tiene giacenze.'}
       </p>
 
       <input

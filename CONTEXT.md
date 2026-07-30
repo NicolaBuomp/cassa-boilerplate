@@ -94,6 +94,17 @@ Vedi [ADR 0003](docs/adr/0003-solo-chi-ha-battuto-puo-incassare.md).
 La schermata del Titolare che mostra tutte le Vendite del periodo aperto e il loro stato, in
 tempo reale. Serve a vedere il locale, non a operarci.
 
+## Inventario
+
+Il registro delle quantità di merce disponibili, dei loro ingressi e delle loro uscite. È una
+capacità opzionale dell'Attività: se attiva usa la stessa anagrafica Prodotto del Catalogo; se
+inattiva, *giacenza*, *Movimento* e *scorta* non appartengono al suo linguaggio.
+
+## Movimento
+
+Una variazione con segno della giacenza di un Prodotto: Carico, Scarico, Vendita, Annullo o
+Rettifica. Il Saldo è la somma dei Movimenti, mai un valore indipendente.
+
 ---
 
 # Le decisioni di questa Attività
@@ -111,10 +122,14 @@ di un glossario che manca.
 *distinta base*. Quanti pezzi ci sono nel frigo lo sa il Titolare guardando il frigo. Per questo
 il modulo si chiama **Catalogo** — mai "Inventario", mai "Magazzino".
 
+Questa resta la configurazione iniziale del boilerplate; un fork può deliberatamente attivare
+l'Inventario descritto nel nucleo quando l'argomento seguente non vale per la sua Attività.
+
 *Perché:* un saldo di magazzino è corretto solo se ogni carico, rottura, consumo interno e
 rettifica viene registrato. In un bar questo non succede, il numero diverge in poche settimane, e
 allora è peggio di non averlo — perché qualcuno ci prende decisioni sopra.
 Vedi [ADR 0001](docs/adr/0001-il-catalogo-non-e-un-inventario.md).
+Vedi anche [ADR 0005](docs/adr/0005-inventario-opzionale-per-attivita.md).
 
 *Quando smette di valere:* in un'Attività dove la merce entra con una fattura ed esce con una
 vendita — un negozio, una rivendita — l'argomento non regge e le giacenze diventano sensate.

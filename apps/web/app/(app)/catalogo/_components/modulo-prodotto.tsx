@@ -1,6 +1,7 @@
 'use client';
 
 import type { Categoria, Prodotto } from '@/lib/supabase/database.types';
+import { attivita } from '@/lib/attivita';
 import { useState } from 'react';
 
 export interface ValoriProdotto {
@@ -8,6 +9,7 @@ export interface ValoriProdotto {
   categoria_id: string | null;
   prezzo: number;
   disponibile: boolean;
+  traccia_giacenza: boolean;
   ordine: number;
 }
 
@@ -30,6 +32,9 @@ export function ModuloProdotto({
   const [categoriaId, setCategoriaId] = useState<string>(prodotto?.categoria_id ?? '');
   const [prezzo, setPrezzo] = useState<number | ''>(prodotto ? Number(prodotto.prezzo) : '');
   const [disponibile, setDisponibile] = useState(prodotto?.disponibile ?? true);
+  const [tracciaGiacenza, setTracciaGiacenza] = useState(
+    prodotto?.traccia_giacenza ?? attivita.moduli.inventario,
+  );
   const [ordine, setOrdine] = useState<number>(prodotto?.ordine ?? 0);
   const [errore, setErrore] = useState<string | null>(null);
   const [confermaElimina, setConfermaElimina] = useState(false);
@@ -53,6 +58,7 @@ export function ModuloProdotto({
         categoria_id: categoriaId === '' ? null : categoriaId,
         prezzo: Number(prezzo),
         disponibile,
+        traccia_giacenza: tracciaGiacenza,
         ordine: Number(ordine) || 0,
       });
     } catch (err) {
@@ -154,6 +160,38 @@ export function ModuloProdotto({
             />
           </span>
         </button>
+
+        {attivita.moduli.inventario ? (
+          <button
+            type="button"
+            onClick={() => setTracciaGiacenza(!tracciaGiacenza)}
+            aria-pressed={tracciaGiacenza}
+            className={`flex min-h-14 items-center justify-between rounded-xl border px-4 ${
+              tracciaGiacenza ? 'border-accento text-accento' : 'border-bordo text-testo-debole'
+            }`}
+          >
+            <span className="flex flex-col items-start">
+              <span className="font-medium">
+                {tracciaGiacenza ? 'Conta in inventario' : 'Senza inventario'}
+              </span>
+              <span className="text-xs">
+                {tracciaGiacenza ? 'Merce: scala a ogni battitura' : 'Servizio: non si conta'}
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className={`flex h-7 w-12 items-center rounded-full p-1 transition ${
+                tracciaGiacenza ? 'bg-accento' : 'bg-bordo'
+              }`}
+            >
+              <span
+                className={`size-5 rounded-full bg-fondo transition ${
+                  tracciaGiacenza ? 'translate-x-5' : ''
+                }`}
+              />
+            </span>
+          </button>
+        ) : null}
 
         {errore ? (
           <p role="alert" className="text-sm text-attenzione">

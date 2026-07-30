@@ -21,6 +21,7 @@ export type Ruolo = 'titolare' | 'cassiere';
 export type StatoVendita = 'da_pagare' | 'pagata' | 'annullata';
 export type MetodoPagamento = 'contanti' | 'pos';
 export type StatoStampa = 'pending' | 'printing' | 'printed' | 'error';
+export type TipoMovimento = 'carico' | 'scarico' | 'vendita' | 'annullo' | 'rettifica';
 
 export interface RigaVenditaJson {
   id: string;
@@ -72,6 +73,11 @@ export interface Database {
           categoria_id: string | null;
           prezzo: number;
           disponibile: boolean;
+          traccia_giacenza: boolean;
+          unita: string;
+          sku: string | null;
+          prezzo_acquisto: number;
+          scorta_minima: number;
           ordine: number;
           note: string | null;
           created_at: string;
@@ -83,6 +89,11 @@ export interface Database {
           categoria_id?: string | null;
           prezzo: number;
           disponibile?: boolean;
+          traccia_giacenza?: boolean;
+          unita?: string;
+          sku?: string | null;
+          prezzo_acquisto?: number;
+          scorta_minima?: number;
           ordine?: number;
           note?: string | null;
         };
@@ -91,9 +102,30 @@ export interface Database {
           categoria_id?: string | null;
           prezzo?: number;
           disponibile?: boolean;
+          traccia_giacenza?: boolean;
+          unita?: string;
+          sku?: string | null;
+          prezzo_acquisto?: number;
+          scorta_minima?: number;
           ordine?: number;
           note?: string | null;
         };
+        Relationships: [];
+      };
+      movimenti: {
+        Row: {
+          id: string;
+          prodotto_id: string;
+          tipo: TipoMovimento;
+          quantita: number;
+          prezzo_unitario: number | null;
+          vendita_id: string | null;
+          motivo: string | null;
+          creato_da: string;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       chiusure: {
@@ -174,6 +206,27 @@ export interface Database {
       };
     };
     Views: {
+      v_inventario: {
+        Row: {
+          prodotto_id: string;
+          nome: string;
+          categoria_id: string | null;
+          categoria_nome: string | null;
+          prezzo: number;
+          prezzo_acquisto: number;
+          unita: string;
+          sku: string | null;
+          scorta_minima: number;
+          disponibile: boolean;
+          traccia_giacenza: boolean;
+          saldo: number;
+          sotto_scorta: boolean;
+          valore_costo: number;
+          valore_vendita: number;
+          ultimo_movimento: string | null;
+        };
+        Relationships: [];
+      };
       v_vendite: {
         Row: Database['public']['Tables']['vendite']['Row'] & {
           battuta_da_nome: string;
@@ -244,6 +297,16 @@ export interface Database {
         Args: { p_vendita_id: string; p_motivo: string };
         Returns: string;
       };
+      registra_movimento: {
+        Args: {
+          p_prodotto_id: string;
+          p_tipo: 'carico' | 'scarico' | 'rettifica';
+          p_quantita: number;
+          p_prezzo_unitario: number | null;
+          p_motivo: string;
+        };
+        Returns: number;
+      };
       chiudi_cassa: {
         Args: { p_note?: string | null };
         Returns: string;
@@ -274,6 +337,8 @@ export interface Database {
 export type Profilo = Database['public']['Tables']['profiles']['Row'];
 export type Categoria = Database['public']['Tables']['categorie']['Row'];
 export type Prodotto = Database['public']['Tables']['prodotti']['Row'];
+export type Movimento = Database['public']['Tables']['movimenti']['Row'];
+export type InventarioProdotto = Database['public']['Views']['v_inventario']['Row'];
 export type Chiusura = Database['public']['Tables']['chiusure']['Row'];
 export type Vendita = Database['public']['Views']['v_vendite']['Row'];
 export type VendutoGiornaliero = Database['public']['Views']['v_venduto_giornaliero']['Row'];
